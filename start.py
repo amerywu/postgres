@@ -6,14 +6,13 @@ import util
 
 def organize_score(thescores, theitems, theresponses ):
     for testid, scoredata in thescores.items():
-
         responsedict = theresponses[testid]
         for score in scoredata.values():
             if score["itemid"] in items:
                 response = responsedict[score["scoreid"]]
                 itemdict = theitems[score["itemid"]]
                 score["item_pool"] = itemdict["type"]
-                score["item_code"] = itemdict["type"] + "_" + itemdict["major"]
+                score["item_code"] = itemdict["item_code"]
                 score["item_type"] = itemdict["dtype"]
                 score["major"] = itemdict["major"]
                 score["poolid"] = util.item_or_empty(response,"poolid")
@@ -21,7 +20,6 @@ def organize_score(thescores, theitems, theresponses ):
                 win_lose = score_getter._win_lose_attribute(response["responseid"], response_attributes)
                 process_win_lose(score, items_pooled, win_lose)
                 score["ipsative_result"] = win_lose
-
             else:
                 print("Missing item:" + str(score["itemid"]))
 
@@ -90,16 +88,31 @@ def save_results(scores):
                             util.item_or_empty(score,"loser"),
                             ])
 
+def make_flat_dict(test_items):
+    flat_dict = {}
+    for key, itemdict in test_items.items():
+        flat_dict[itemdict["item_code"]] = []
+    return flat_dict
+
+
+
+def organize_results_flat(scores, test_items):
+    flat_dict = make_flat_dict(test_items)
+    for testkey, testscores in scores.items():
+        for scoreid, score in testscores.items():
+            print("")
+
 
 conn = ps.get_connection()
 items = items_getter.get_items(conn)
 items_pooled = items_by_pool(items)
-properties = score_getter.get_property_values(conn)
+
 scores = score_getter.get_scores(conn)
 responses = score_getter.get_responses(conn)
 response_attributes = score_getter.get_response_attributes(conn)
 organize_score(scores,items, responses)
 items_getter.save_csv(items)
+organize_results_flat(scores, items)
 save_results(scores)
 
 ps.close_connection(conn)

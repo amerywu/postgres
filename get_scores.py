@@ -1,19 +1,3 @@
-def get_property_values(connection):
-    cursor = connection.cursor()
-    cursor.execute("SELECT * FROM public.contentelementtypeproperty limit 1000")
-    rows = cursor.fetchall()
-    property_dict = {}
-
-
-    for row in rows:
-        row_dict = {}
-        row_dict["id"] = row[0]
-        row_dict["key"] = row[3]
-        row_dict["name"] = row[5]
-        row_dict["value"] = row[6]
-        property_dict[row[0]] = row_dict
-        #print(util.print_row_value(row,contentelementtypeproperty_columns,["id","key","name","value"]))
-    return property_dict
 
 
 def get_scores(connection):
