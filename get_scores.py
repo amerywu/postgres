@@ -1,9 +1,10 @@
-
+import get_items
 
 def get_scores(connection):
     cursor = connection.cursor()
-    cursor.execute("SELECT * FROM public.testcontentelementscore order by id limit 1000")
+    cursor.execute("SELECT * FROM public.testcontentelementscore order by id")
     rows = cursor.fetchall()
+
     all_scores_dict = {}
 
     for row in rows:
@@ -28,7 +29,7 @@ def get_scores(connection):
 
 def get_responses(connection):
     cursor = connection.cursor()
-    cursor.execute("SELECT * FROM public.testcontentelementresponse order by id limit 4000")
+    cursor.execute("SELECT * FROM public.testcontentelementresponse order by id")
     rows = cursor.fetchall()
     all_responses_dict = {}
 
@@ -56,7 +57,7 @@ def get_responses(connection):
 
 def get_response_attributes(connection):
     cursor = connection.cursor()
-    cursor.execute("SELECT * FROM public.responseattribute ORDER BY id limit 4000")
+    cursor.execute("SELECT * FROM public.responseattribute ORDER BY id")
     rows = cursor.fetchall()
     all_attributes_dict = {}
 

@@ -1,13 +1,7 @@
 import csv
 
 
-testcontentelement_columns = {}
-testcontentelement_columns["id"] = 0
-testcontentelement_columns["stem"] = 1
-testcontentelement_columns["prompt"] = 2
-testcontentelement_columns["category"] = 3
-testcontentelement_columns["temp"] = 4
-testcontentelement_columns["major"] = 5
+
 
 
 items_query = "select tce.id, tce.stem, tce.prompt, tcep.contentelementtypepropertykey, " \
@@ -21,6 +15,9 @@ items_query = "select tce.id, tce.stem, tce.prompt, tcep.contentelementtypeprope
               "and cetp.value NOT LIKE '%HI_%' order by tce.id desc;"
               #"order by tce.id;"
 
+demographics_query = "select tce.id, tce.stem, tce.prompt, tce.dtype from testcontentelement tce where tce.id in (32089,32102,32165,32169,36823,36830 )"
+
+options_query = "SELECT * FROM public.multiplechoiceoption"
 
 def row_to_dict(row, dict, keylist):
     return_dict = {}
@@ -89,15 +86,67 @@ def add_properties(property_values, property_relations, item):
     item_id = item["id"]
     prelations = property_relations[item_id]
     item["item_genre"] = ""
+    item["major"] = ""
     for pdict in prelations.values():
         if pdict["key"] == "cet_property_cati_msproperties_assessed_category_C":
             value = property_values[pdict["property_id"]]["value"]
             item["item_genre"] = value
+        elif pdict["key"] == "cet_property_cati_msproperties_assessed_category_B":
+            value = property_values[pdict["property_id"]]["value"]
+            item["type"] = value
         elif pdict["key"] == "cet_property_cati_msproperties_assessed_category_A":
             value = property_values[pdict["property_id"]]["value"]
             item["major"] = value
 
 
+def get_demographics(connection):
+
+
+    cursor = connection.cursor()
+    cursor.execute(demographics_query)
+    rows = cursor.fetchall()
+    results = {}
+    count = 1
+    for row in rows:
+        row_id = row[0]
+        row_dict = {}
+
+        row_dict["id"] = row[0]
+        row_dict["stem"] = row[1]
+        row_dict["prompt"] = row[2]
+        row_dict["dtype"] = row[3]
+
+
+        row_dict["item_code"] = make_item_code(row_dict["dtype"], row_dict["prompt"], row_dict["id"] )
+        results[row_id] = row_dict
+
+
+        count = count + 1
+    return results
+
+
+def get_options(connection):
+
+
+    cursor = connection.cursor()
+    cursor.execute(options_query)
+    rows = cursor.fetchall()
+    results = {}
+    count = 1
+    for row in rows:
+        row_id = row[0]
+        row_dict = {}
+
+        row_dict["id"] = row[0]
+        row_dict["option"] = row[3]
+        row_dict["itemid"] = row[5]
+        results[row_id] = row_dict
+
+
+        count = count + 1
+
+
+    return results
 
 
 def get_items(connection):
@@ -111,34 +160,37 @@ def get_items(connection):
     count = 1
     for row in rows:
         row_id = row[0]
-        if row_id in results.keys():
-            if is_item_type(row):
-                results[row_id]["type"] = row[4]
-            else:
-                results[row_id]["major"] = major(results[row_id]["major"],str(row[4]))
+        row_dict = {}
+
+        row_dict["id"] = row[0]
+        row_dict["stem"] = row[1]
+        row_dict["prompt"] = row[2]
 
 
-        else:
-            row_dict = {}
-            row_dict["id"] = row[0]
-            row_dict["stem"] = row[1]
-            row_dict["prompt"] = row[2]
+        row_dict["dtype"] = row[5]
+        add_properties(property_values, property_relations, row_dict)
 
-            row_dict["type"] = ""
-            row_dict["major"] = ""
-            if is_item_type(row):
-                row_dict["type"] = row[4]
-            else:
-                row_dict["major"] = major(row_dict["major"],row[4])
-            row_dict["dtype"] = row[5]
-            add_properties(property_values, property_relations, row_dict)
-            results[row_id] = row_dict
+        row_dict["item_code"] = make_item_code(row_dict["type"], row_dict["major"], row_dict["id"] )
+        results[row_id] = row_dict
 
-        results[row_id]["item_code"] = str(results[row[0]]["type"] + "_" + str(results[row[0]]["major"])).replace(" ", "_").replace("__", "_")
+
         count = count + 1
     return results
 
+def make_item_code(type,major, id):
+    simple_type = type.replace("R0", "").replace("LIKERT", "L").replace("IPSATIVE", "F")
+    if not major or len(major) == 0:
+        major = "NA"
+    if len(major) > 4:
+        head = major[0:3]
+        tail = major[len(major) - 2 : len(major) ]
+        major = head + tail
+    id = str(id)
+    if len(id) > 3:
+        id = id[len(id) - 3 : len(id) ]
 
+    final_code = (simple_type+major+id).replace("_","").upper()
+    return final_code
 
 def save_csv(dict):
     with open("items.csv", "w", newline='') as f:
